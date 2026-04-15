@@ -1,0 +1,36 @@
+name: Keep Streamlit App Alive
+
+on:
+  schedule:
+    # Runs every 1 hour
+    - cron: '0 */1 * * *'
+  workflow_dispatch: # Allows you to manually trigger it too
+
+jobs:
+  keep-alive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install Playwright
+        run: |
+          pip install playwright
+          playwright install chromium
+
+      - name: Visit Streamlit App
+        run: |
+          python -c "
+          import asyncio
+          from playwright.async_api import async_playwright
+
+          async def keep_alive():
+              async with async_playwright() as p:
+                  browser = await p.chromium.launch()
+                  page = await browser.new_page()
+                  print('Visiting app...')
+                  await page.goto('https://hotel-analysis-demo.streamlit.app/', timeout=120000)
+                  # Wait 60 seconds to establish WebSocket connection
+                  await asyncio.sleep(60)
+                  print('Done. App should stay awake.')
+                  await browser.close()
+
+          asyncio.run(keep_alive())
+          "
